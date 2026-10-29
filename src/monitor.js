@@ -38,15 +38,11 @@ async function leerReacciones(page, url, etiqueta) {
   const candidatos = await page.evaluate((sel) => {
     const els = sel
       ? document.querySelectorAll(sel)
-      : document.querySelectorAll(
-          '[aria-label*="eact" i], [aria-label*="like" i], [aria-label*="gusta" i], ' +
-            '[aria-label*="vote" i], [aria-label*="voto" i], [aria-label*="grade" i], ' +
-            '[data-testid*="reaction" i], [class*="reaction" i]'
-        );
+      : document.querySelectorAll('[aria-label*="reaction" i], [aria-label*="reacci" i]');
     const hojas = [...els].filter((el) => {
       if (el.children.length > 3) return false;
       const txt = `${el.getAttribute('aria-label') ?? ''} ${el.textContent ?? ''}`.trim();
-      return txt && txt.length <= 40 && /\b\d{1,4}\b/.test(txt);
+      return txt && txt.length <= 150 && !/comment|comentar/i.test(txt) && /\b\d{1,4}\b/.test(txt);
     });
     // La página muestra otras publicaciones del muro; la abierta es la última en el DOM.
     // Tomamos el ancestro más pequeño del último botón que contenga a todos sus hermanos de reacción.
