@@ -43,16 +43,26 @@ async function leerReacciones(page, url, etiqueta) {
             '[aria-label*="vote" i], [aria-label*="voto" i], [aria-label*="grade" i], ' +
             '[data-testid*="reaction" i], [class*="reaction" i]'
         );
-    const out = [];
-    for (const el of els) {
-      // Solo elementos "hoja" con texto corto, para no leer contenedores enormes
-      if (el.children.length > 3) continue;
+    const hojas = [...els].filter((el) => {
+      if (el.children.length > 3) return false;
       const txt = `${el.getAttribute('aria-label') ?? ''} ${el.textContent ?? ''}`.trim();
-      if (!txt || txt.length > 40) continue;
-      const m = txt.match(/\b\d{1,4}\b/g);
-      if (!m) continue;
-      out.push({ tag: el.tagName, cls: String(el.className).slice(0, 60), txt, n: Number(m[m.length - 1]) });
+      return txt && txt.length <= 40 && /\b\d{1,4}\b/.test(txt);
+    });
+    // La página muestra otras publicaciones del muro; la abierta es la última en el DOM.
+    // Tomamos el ancestro más pequeño del último botón que contenga a todos sus hermanos de reacción.
+    let grupo = hojas.slice(-1);
+    if (hojas.length) {
+      const ultimo = hojas[hojas.length - 1];
+      for (let anc = ultimo.parentElement; anc; anc = anc.parentElement) {
+        const dentro = hojas.filter((h) => anc.contains(h));
+        if (dentro.length >= 2) { grupo = dentro; break; }
+      }
     }
+    const out = grupo.map((el) => {
+      const txt = `${el.getAttribute('aria-label') ?? ''} ${el.textContent ?? ''}`.trim();
+      const m = txt.match(/\b\d{1,4}\b/g);
+      return { tag: el.tagName, txt, n: Number(m[m.length - 1]) };
+    });
     return out;
   }, REACTION_SELECTOR || null);
   const total = candidatos.map((c) => c.n);
