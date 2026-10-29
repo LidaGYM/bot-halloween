@@ -35,28 +35,33 @@ async function leerReacciones(page, url, etiqueta) {
   await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForTimeout(2500);
 
-  const total = await page.evaluate((sel) => {
-    const nums = [];
-    const candidatos = sel
+  const candidatos = await page.evaluate((sel) => {
+    const els = sel
       ? document.querySelectorAll(sel)
       : document.querySelectorAll(
           '[aria-label*="eact" i], [aria-label*="like" i], [aria-label*="gusta" i], ' +
             '[aria-label*="vote" i], [aria-label*="voto" i], [aria-label*="grade" i], ' +
-            '[data-testid*="reaction" i], [class*="reaction" i], [class*="Reaction"]'
+            '[data-testid*="reaction" i], [class*="reaction" i]'
         );
-    for (const el of candidatos) {
-      const txt = `${el.getAttribute('aria-label') ?? ''} ${el.textContent ?? ''}`;
-      const m = txt.match(/\b\d+\b/g);
-      if (m && txt.length < 80) nums.push(Number(m[m.length - 1]));
+    const out = [];
+    for (const el of els) {
+      // Solo elementos "hoja" con texto corto, para no leer contenedores enormes
+      if (el.children.length > 3) continue;
+      const txt = `${el.getAttribute('aria-label') ?? ''} ${el.textContent ?? ''}`.trim();
+      if (!txt || txt.length > 40) continue;
+      const m = txt.match(/\b\d{1,4}\b/g);
+      if (!m) continue;
+      out.push({ tag: el.tagName, cls: String(el.className).slice(0, 60), txt, n: Number(m[m.length - 1]) });
     }
-    return nums;
+    return out;
   }, REACTION_SELECTOR || null);
+  const total = candidatos.map((c) => c.n);
+  if (DEBUG) console.log(`[debug] ${etiqueta} candidatos:`, JSON.stringify(candidatos, null, 1));
 
   if (DEBUG) {
     mkdirSync('debug', { recursive: true });
     writeFileSync(`debug/${etiqueta}.html`, await page.content());
     await page.screenshot({ path: `debug/${etiqueta}.png`, fullPage: true });
-    console.log(`[debug] ${etiqueta}: números encontrados =`, total);
   }
 
   if (!total.length) throw new Error(`No se encontraron reacciones en ${etiqueta}. Revisa REACTION_SELECTOR.`);
