@@ -1,0 +1,14 @@
+{
+  "name": "bot-halloween",
+  "version": "1.0.0",
+  "description": "Monitor de reacciones de Padlet: avisa cuando la publicación rival se acerca a la tuya",
+  "type": "module",
+  "scripts": {
+    "start": "node src/monitor.js",
+    "once": "node src/monitor.js --once",
+    "debug": "node src/monitor.js --once --debug"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}
